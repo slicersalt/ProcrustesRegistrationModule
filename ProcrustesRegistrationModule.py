@@ -1,6 +1,10 @@
 import os
 import unittest
 import vtk, qt, ctk, slicer
+# from vtkFiltersHybridPython import vtkProcrustesAlignmentFilter
+# from vtkFiltersKitPython import vtkMultiBlockDataGroupFilter
+# from vtkCommonKitPython import vtkPointSet
+# from vtkCommonKitPython import vtkMultiBlockDataSet
 from slicer.ScriptedLoadableModule import *
 import logging
 
@@ -16,18 +20,18 @@ class ProcrustesRegistrationModule(ScriptedLoadableModule):
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title = "Procrustes Registration"
-    self.parent.categories = ["Examples"]
+    self.parent.categories = ["Shape Analysis"]
     self.parent.dependencies = []
     self.parent.contributors = ["Ye Han (Kitware, Inc.)"]
-    self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
-It performs a simple thresholding on the input volume and optionally captures a screenshot.
-"""
+    self.parent.helpText = (
+      "Procrustes registration using vtkProcrustesAlignmentFilter."
+    )
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
-    self.parent.acknowledgementText = """
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc.
-and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
-""" # replace with organization, grant and thanks.
+    self.parent.acknowledgementText = (
+      "This file was originally developed by Jean-Christophe Fillion-Robin, "
+      "Kitware Inc., Andras Lasso, PerkLab, and Steve Pieper, Isomics, Inc. "
+      "and was partially funded by NIH grant 3P41RR013218-12S1."
+    )
 
 #
 # ProcrustesRegistrationModuleWidget
@@ -56,51 +60,47 @@ class ProcrustesRegistrationModuleWidget(ScriptedLoadableModuleWidget):
     #
     # input volume selector
     #
-    self.inputSelector = slicer.qMRMLNodeComboBox()
-    self.inputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.inputSelector.selectNodeUponCreation = True
-    self.inputSelector.addEnabled = False
-    self.inputSelector.removeEnabled = False
-    self.inputSelector.noneEnabled = False
-    self.inputSelector.showHidden = False
-    self.inputSelector.showChildNodeTypes = False
-    self.inputSelector.setMRMLScene( slicer.mrmlScene )
-    self.inputSelector.setToolTip( "Pick the input to the algorithm." )
-    parametersFormLayout.addRow("Input Volume: ", self.inputSelector)
+    self.inputSelector1 = slicer.qMRMLNodeComboBox()
+    self.inputSelector1.nodeTypes = ["vtkMRMLModelNode"]
+    self.inputSelector1.selectNodeUponCreation = False
+    self.inputSelector1.addEnabled = False
+    self.inputSelector1.removeEnabled = False
+    self.inputSelector1.noneEnabled = False
+    self.inputSelector1.showHidden = False
+    self.inputSelector1.showChildNodeTypes = False
+    self.inputSelector1.setMRMLScene( slicer.mrmlScene )
+    self.inputSelector1.setToolTip( "Pick the input1 to the algorithm." )
+    parametersFormLayout.addRow("Input Model1: ", self.inputSelector1)
 
     #
     # output volume selector
     #
-    self.outputSelector = slicer.qMRMLNodeComboBox()
-    self.outputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.outputSelector.selectNodeUponCreation = True
-    self.outputSelector.addEnabled = True
-    self.outputSelector.removeEnabled = True
-    self.outputSelector.noneEnabled = True
-    self.outputSelector.showHidden = False
-    self.outputSelector.showChildNodeTypes = False
-    self.outputSelector.setMRMLScene( slicer.mrmlScene )
-    self.outputSelector.setToolTip( "Pick the output to the algorithm." )
-    parametersFormLayout.addRow("Output Volume: ", self.outputSelector)
+    self.inputSelector2 = slicer.qMRMLNodeComboBox()
+    self.inputSelector2.nodeTypes = ["vtkMRMLModelNode"]
+    self.inputSelector2.selectNodeUponCreation = False
+    self.inputSelector2.addEnabled = False
+    self.inputSelector2.removeEnabled = False
+    self.inputSelector2.noneEnabled = False
+    self.inputSelector2.showHidden = False
+    self.inputSelector2.showChildNodeTypes = False
+    self.inputSelector2.setMRMLScene( slicer.mrmlScene )
+    self.inputSelector2.setToolTip( "Pick the input2 to the algorithm." )
+    parametersFormLayout.addRow("Input Model2: ", self.inputSelector2)
 
     #
-    # threshold value
+    # output volume selector
     #
-    self.imageThresholdSliderWidget = ctk.ctkSliderWidget()
-    self.imageThresholdSliderWidget.singleStep = 0.1
-    self.imageThresholdSliderWidget.minimum = -100
-    self.imageThresholdSliderWidget.maximum = 100
-    self.imageThresholdSliderWidget.value = 0.5
-    self.imageThresholdSliderWidget.setToolTip("Set threshold value for computing the output image. Voxels that have intensities lower than this value will set to zero.")
-    parametersFormLayout.addRow("Image threshold", self.imageThresholdSliderWidget)
-
-    #
-    # check box to trigger taking screen shots for later use in tutorials
-    #
-    self.enableScreenshotsFlagCheckBox = qt.QCheckBox()
-    self.enableScreenshotsFlagCheckBox.checked = 0
-    self.enableScreenshotsFlagCheckBox.setToolTip("If checked, take screen shots for tutorials. Use Save Data to write them to disk.")
-    parametersFormLayout.addRow("Enable Screenshots", self.enableScreenshotsFlagCheckBox)
+    self.inputSelector3 = slicer.qMRMLNodeComboBox()
+    self.inputSelector3.nodeTypes = ["vtkMRMLModelNode"]
+    self.inputSelector3.selectNodeUponCreation = True
+    self.inputSelector3.addEnabled = False
+    self.inputSelector3.removeEnabled = False
+    self.inputSelector3.noneEnabled = False
+    self.inputSelector3.showHidden = False
+    self.inputSelector3.showChildNodeTypes = False
+    self.inputSelector3.setMRMLScene( slicer.mrmlScene )
+    self.inputSelector3.setToolTip( "Pick the input3 to the algorithm." )
+    parametersFormLayout.addRow("Input Model3: ", self.inputSelector3)
 
     #
     # Apply Button
@@ -112,8 +112,9 @@ class ProcrustesRegistrationModuleWidget(ScriptedLoadableModuleWidget):
 
     # connections
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
-    self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.outputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.inputSelector1.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.inputSelector2.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.inputSelector3.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -125,73 +126,125 @@ class ProcrustesRegistrationModuleWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
+    self.applyButton.enabled = self.inputSelector1.currentNode() \
+                               and self.inputSelector2.currentNode()\
+                               and self.inputSelector3.currentNode()
 
   def onApplyButton(self):
     logic = ProcrustesRegistrationModuleLogic()
-    enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
-    imageThreshold = self.imageThresholdSliderWidget.value
-    logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
+    logic.run(self.inputSelector1.currentNode(), self.inputSelector2.currentNode(), self.inputSelector3.currentNode())
 
 #
 # ProcrustesRegistrationModuleLogic
 #
 
 class ProcrustesRegistrationModuleLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
 
-  def hasImageData(self,volumeNode):
+  def hasModelData(self,modelNode):
     """This is an example logic method that
     returns true if the passed in volume
     node has valid image data
     """
-    if not volumeNode:
-      logging.debug('hasImageData failed: no volume node')
+    if not modelNode:
+      logging.debug('hasModelData failed: no volume node')
       return False
-    if volumeNode.GetImageData() is None:
-      logging.debug('hasImageData failed: no image data in volume node')
-      return False
-    return True
-
-  def isValidInputOutputData(self, inputVolumeNode, outputVolumeNode):
-    """Validates if the output is not the same as input
-    """
-    if not inputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no input volume node defined')
-      return False
-    if not outputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no output volume node defined')
-      return False
-    if inputVolumeNode.GetID()==outputVolumeNode.GetID():
-      logging.debug('isValidInputOutputData failed: input and output volume is the same. Create a new volume for output to avoid this error.')
+    if modelNode.GetMesh() is None:
+      logging.debug('hasModelData failed: no poly data in model node')
       return False
     return True
 
-  def run(self, inputVolume, outputVolume, imageThreshold, enableScreenshots=0):
+  def run(self, inputModel1, inputModel2, inputModel3):
     """
     Run the actual algorithm
     """
-
-    if not self.isValidInputOutputData(inputVolume, outputVolume):
-      slicer.util.errorDisplay('Input volume is the same as output volume. Choose a different output volume.')
-      return False
-
     logging.info('Processing started')
 
-    # Compute the thresholded output volume using the Threshold Scalar Volume CLI module
-    cliParams = {'InputVolume': inputVolume.GetID(), 'OutputVolume': outputVolume.GetID(), 'ThresholdValue' : imageThreshold, 'ThresholdType' : 'Above'}
-    cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True)
+    if not self.hasModelData(inputModel1):
+      return False
+    if not self.hasModelData(inputModel2):
+      return False
+    if not self.hasModelData(inputModel3):
+      return False
 
-    # Capture screenshot
-    if enableScreenshots:
-      self.takeScreenshot('ProcrustesRegistrationModuleTest-Start','MyScreenshot',-1)
+    group = vtk.vtkMultiBlockDataGroupFilter()
+    group.AddInputDataObject(inputModel1.GetMesh())
+    group.AddInputDataObject(inputModel2.GetMesh())
+    group.AddInputDataObject(inputModel3.GetMesh())
+    group.Update()
+    procrustes = vtk.vtkProcrustesAlignmentFilter()
+    procrustes.SetInputConnection(group.GetOutputPort())
+    procrustes.GetLandmarkTransform().SetModeToRigidBody()
+    procrustes.Update()
+
+    poly1 = procrustes.GetOutput().GetBlock(0)
+    poly2 = procrustes.GetOutput().GetBlock(1)
+    poly3 = procrustes.GetOutput().GetBlock(2)
+
+    meanPoints = procrustes.GetMeanPoints()
+    nPoints = meanPoints.GetNumberOfPoints()
+    vertices = vtk.vtkCellArray()
+    vertices.Allocate(nPoints)
+    for ptId in range(nPoints):
+      vertex = vtk.vtkVertex()
+      vertex.GetPointIds().SetId(0, ptId)
+      vertices.InsertNextCell(vertex)
+    pointSets = vtk.vtkPolyData()
+    pointSets.SetPoints(meanPoints)
+    pointSets.SetVerts(vertices)
+
+    scene = slicer.mrmlScene
+
+    outputModel1 = slicer.vtkMRMLModelNode()
+    outputModel1.SetScene(scene)
+    outputModel1.SetName(scene.GenerateUniqueName(inputModel1.GetName() + "_aligned"))
+    outputModel1.SetAndObservePolyData(poly1)
+
+    modelDisplay1 = slicer.vtkMRMLModelDisplayNode()
+    modelDisplay1.SetColor(0, 1, 1)  # cyan
+    modelDisplay1.SetBackfaceCulling(0)
+    modelDisplay1.SetScene(scene)
+    scene.AddNode(modelDisplay1)
+    outputModel1.SetAndObserveDisplayNodeID(modelDisplay1.GetID())
+    scene.AddNode(outputModel1)
+
+    outputModel2 = slicer.vtkMRMLModelNode()
+    outputModel2.SetScene(scene)
+    outputModel2.SetName(scene.GenerateUniqueName(inputModel2.GetName() + "_aligned"))
+    outputModel2.SetAndObservePolyData(poly2)
+
+    modelDisplay2 = slicer.vtkMRMLModelDisplayNode()
+    modelDisplay2.SetColor(0, 1, 1)  # cyan
+    modelDisplay2.SetBackfaceCulling(0)
+    modelDisplay2.SetScene(scene)
+    scene.AddNode(modelDisplay2)
+    outputModel2.SetAndObserveDisplayNodeID(modelDisplay2.GetID())
+    scene.AddNode(outputModel2)
+
+    outputModel3 = slicer.vtkMRMLModelNode()
+    outputModel3.SetScene(scene)
+    outputModel3.SetName(scene.GenerateUniqueName(inputModel3.GetName() + "_aligned"))
+    outputModel3.SetAndObservePolyData(poly3)
+
+    modelDisplay3 = slicer.vtkMRMLModelDisplayNode()
+    modelDisplay3.SetColor(0, 1, 1)  # cyan
+    modelDisplay3.SetBackfaceCulling(0)
+    modelDisplay3.SetScene(scene)
+    scene.AddNode(modelDisplay3)
+    outputModel3.SetAndObserveDisplayNodeID(modelDisplay3.GetID())
+    scene.AddNode(outputModel3)
+
+    meanPointModel = slicer.vtkMRMLModelNode()
+    meanPointModel.SetScene(scene)
+    meanPointModel.SetName(scene.GenerateUniqueName("mean_points"))
+    meanPointModel.SetAndObservePolyData(pointSets)
+
+    meanPointDisplay = slicer.vtkMRMLModelDisplayNode()
+    meanPointDisplay.SetColor(1, 0, 0)  # cyan
+    meanPointDisplay.SetBackfaceCulling(0)
+    meanPointDisplay.SetScene(scene)
+    scene.AddNode(meanPointDisplay)
+    meanPointModel.SetAndObserveDisplayNodeID(meanPointDisplay.GetID())
+    scene.AddNode(meanPointModel)
 
     logging.info('Processing completed')
 
@@ -226,7 +279,6 @@ class ProcrustesRegistrationModuleTest(ScriptedLoadableModuleTest):
     developers when their changes will have an impact on the behavior of your
     module.  For example, if a developer removes a feature that you depend on,
     your test should break so they know that the feature is needed.
-    """
 
     self.delayDisplay("Starting the test")
     #
@@ -243,3 +295,5 @@ class ProcrustesRegistrationModuleTest(ScriptedLoadableModuleTest):
     logic = ProcrustesRegistrationModuleLogic()
     self.assertIsNotNone( logic.hasImageData(volumeNode) )
     self.delayDisplay('Test passed!')
+    """
+
