@@ -51,7 +51,7 @@ class ProcrustesRegistrationModuleWidget(ScriptedLoadableModuleWidget):
     # Instantiate and connect widgets ...
 
     # Load widget from .ui file (created by Qt Designer)
-    uiWidget = slicer.util.loadUI(self.resourcePath('UI/ProcrutesRegistration.ui'))
+    uiWidget = slicer.util.loadUI(self.resourcePath('UI/ProcrustesRegistrationModule.ui'))
     self.layout.addWidget(uiWidget)
     self.ui = slicer.util.childWidgetVariables(uiWidget)
 
